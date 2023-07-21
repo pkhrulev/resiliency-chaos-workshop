@@ -181,7 +181,8 @@ resource "aws_iam_instance_profile" "self_managed_ng" {
 module "ecr" {
   source = "terraform-aws-modules/ecr/aws"
 
-  repository_name = "aws-ce/app"
+  repository_name         = "aws-ce/app"
+  repository_force_delete = true
   
   repository_lifecycle_policy = jsonencode({
     rules = [
@@ -232,7 +233,7 @@ module "eks_blueprints_kubernetes_addons" {
   # enable_karpenter                             = false
   # enable_metrics_server                        = true
   # enable_prometheus                            = true
-  enable_vpa                                   = true
+  # enable_vpa                                   = true
   # enable_argo_rollouts                         = true
   # enable_aws_node_termination_handler          = true
   enable_aws_load_balancer_controller          = true
