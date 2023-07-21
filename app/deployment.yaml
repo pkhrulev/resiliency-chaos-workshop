@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: weather-app
+  namespace: default
+  labels:
+    app: weather-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather-app
+  template:
+    metadata:
+      labels:
+        app: weather-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                - eu-west-1a
+
+      containers:
+        - image: 589295909756.dkr.ecr.eu-west-1.amazonaws.com/aws-ce/app:test5
+          imagePullPolicy: IfNotPresent
+          name: weather-app
+          livenessProbe:
+            httpGet:
+              path: /statistics
+              port: 8080
+          readinessProbe:
+            httpGet:
+              path: /statistics
+              port: 8080
+          env:
+            - name: "API_KEY"
+              value: "<Openweather API key>"
+            - name: "API_ENDPOINT"
+              value: "https://api.openweathermap.org"
+            - name: "CITY_ID"
+              value: "293397"
+            - name: "RDS_SECRET_NAME"
+              value: "/aws_ce/rds_secret"
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-app
+spec:
+  selector:
+    app: weather-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: weather-app
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /statistics
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+
+          backend:
+            service:
+              name: weather-app
+              port:
+                number: 8080

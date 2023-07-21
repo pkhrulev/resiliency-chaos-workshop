@@ -1,0 +1,49 @@
+Deploy EKS cluster with node groups with terraform 
+
+Build the app and push to ECR 
+
+Get config to work with kubectl: aws eks — region <region-code> update-kubeconfig — name <cluster_name> 
+
+Apply manifest for our test web application 
+
+Demonstrate the web app its pages is working and can be accessed 
+
+Harness chaos: Create project, environment, download manifest for chaos infrastructure 
+
+Apply chaos infra into the cluster: kubectl apply -f test-chaos-plane-harness-chaos-enable.yml 
+
+Wait until chaos infra is applied and environment is connected 
+
+Add aws creds to the cluster: kubectl apply -f aws-secrets-chaos.yml -n hce 
+
+Demonstrate experiments code 
+
+Change the code according to IDs and probes https 
+
+Monitor pods with watch kubectl get pods -o=wide 
+
+Create experiment, check and run 
+
+ 
+
+ 
+
+Change replicas to 3 and rerun 
+
+Change antiaffinity and reapply the deployment 
+
+WATCH for containers not running successfully! It will cause errors 
+
+Delete the deployment and reapply if issue with the container 
+
+Rerun 
+
+Fix the db issue 
+
+Rebuild the container 
+
+Change the image name in deployment.yaml 
+
+Apply 
+
+Rerun the resiliency test 

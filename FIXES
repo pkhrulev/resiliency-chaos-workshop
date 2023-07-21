@@ -1,0 +1,45 @@
+Code samples for fixing resiliency
+
+
+#1 Increase pod replicas
+
+app/deployment.yaml
+
+spec:
+  replicas: 3
+
+
+#2 Change affinity to deploy pods in different AZs
+
+app/deployment.yaml
+
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: weather-app
+  template:
+    metadata:
+      labels:
+        app: weather-app
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - weather-app
+              topologyKey: topology.kubernetes.io/zone
+
+#3 Add endpoint for secondary DB in the application code
+
+app.py
+
+conn =  psycopg2.connect("postgresql://{}:{}@{}/weather_db".format(connection_data['user'], connection_data['password'], connection_data['host']))
+
+terraform/rds.tf
+
+host     = "${module.master.db_instance_address}:5432,${module.replica.db_instance_address}:5432"

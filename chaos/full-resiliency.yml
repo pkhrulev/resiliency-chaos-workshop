@@ -1,0 +1,895 @@
+kind: Workflow
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: test-resiliency
+  namespace: hce
+  labels:
+    infra_id: 88e030fc-bf86-4518-8e6e-49f7a051fc77
+    revision_id: a542aed6-afff-4b08-b0e7-e1a4409b229f
+    subject: custom-chaos-workflow_litmus
+    workflow_id: 3cd9c30d-f754-480e-9dd8-0a816902e76a
+    workflows.argoproj.io/controller-instanceid: 88e030fc-bf86-4518-8e6e-49f7a051fc77
+spec:
+  templates:
+    - name: custom-chaos
+      inputs: {}
+      outputs: {}
+      metadata: {}
+      steps:
+        - - name: install-chaos-faults
+            template: install-chaos-faults
+            arguments: {}
+        - - name: pod-delete-o2z
+            template: pod-delete-o2z
+            arguments: {}
+        - - name: alb-az-down-76z
+            template: alb-az-down-76z
+            arguments: {}
+        - - name: rds-instance-reboot-k45
+            template: rds-instance-reboot-k45
+            arguments: {}
+        - - name: cleanup-chaos-resources
+            template: cleanup-chaos-resources
+            arguments: {}
+    - name: install-chaos-faults
+      inputs:
+        artifacts:
+          - name: pod-delete-o2z
+            path: /tmp/pod-delete-o2z.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                description:
+                  message: |
+                    Deletes a pod belonging to a deployment/statefulset/daemonset
+                kind: ChaosExperiment
+                metadata:
+                  name: pod-delete
+                  labels:
+                    name: pod-delete
+                    app.kubernetes.io/part-of: litmus
+                    app.kubernetes.io/component: chaosexperiment
+                    app.kubernetes.io/version: ci
+                spec:
+                  definition:
+                    scope: Namespaced
+                    permissions:
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods
+                        verbs:
+                          - create
+                          - delete
+                          - get
+                          - list
+                          - patch
+                          - update
+                          - deletecollection
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - events
+                        verbs:
+                          - create
+                          - get
+                          - list
+                          - patch
+                          - update
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - configmaps
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/log
+                        verbs:
+                          - get
+                          - list
+                          - watch
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/exec
+                        verbs:
+                          - get
+                          - list
+                          - create
+                      - apiGroups:
+                          - apps
+                        resources:
+                          - deployments
+                          - statefulsets
+                          - replicasets
+                          - daemonsets
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - apps.openshift.io
+                        resources:
+                          - deploymentconfigs
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - replicationcontrollers
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - argoproj.io
+                        resources:
+                          - rollouts
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - batch
+                        resources:
+                          - jobs
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - delete
+                          - deletecollection
+                      - apiGroups:
+                          - litmuschaos.io
+                        resources:
+                          - chaosengines
+                          - chaosexperiments
+                          - chaosresults
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - patch
+                          - update
+                          - delete
+                    image: docker.io/chaosnative/go-runner:0.13.1
+                    imagePullPolicy: Always
+                    args:
+                      - -c
+                      - ./experiments -name pod-delete
+                    command:
+                      - /bin/bash
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "15"
+                      - name: RAMP_TIME
+                        value: ""
+                      - name: FORCE
+                        value: "true"
+                      - name: CHAOS_INTERVAL
+                        value: "5"
+                      - name: PODS_AFFECTED_PERC
+                        value: ""
+                      - name: TARGET_PODS
+                        value: ""
+                      - name: TARGET_CONTAINER
+                        value: ""
+                      - name: NODE_LABEL
+                        value: ""
+                      - name: SEQUENCE
+                        value: parallel
+                      - name: DEFAULT_HEALTH_CHECK
+                        value: "false"
+                    labels:
+                      name: pod-delete
+                      app.kubernetes.io/part-of: litmus
+                      app.kubernetes.io/component: experiment-job
+                      app.kubernetes.io/version: ci
+          - name: alb-az-down-76z
+            path: /tmp/alb-az-down-76z.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                description:
+                  message: |
+                    It injects AZ down chaos on alb for a certain chaos duration.
+                kind: ChaosExperiment
+                metadata:
+                  name: alb-az-down
+                  labels:
+                    name: alb-az-down
+                    app.kubernetes.io/part-of: litmus
+                    app.kubernetes.io/component: chaosexperiment
+                    app.kubernetes.io/version: ci
+                spec:
+                  definition:
+                    scope: Namespaced
+                    permissions:
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods
+                        verbs:
+                          - create
+                          - delete
+                          - get
+                          - list
+                          - patch
+                          - update
+                          - deletecollection
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - events
+                        verbs:
+                          - create
+                          - get
+                          - list
+                          - patch
+                          - update
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - configmaps
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/log
+                        verbs:
+                          - get
+                          - list
+                          - watch
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/exec
+                        verbs:
+                          - get
+                          - list
+                          - create
+                      - apiGroups:
+                          - apps
+                        resources:
+                          - deployments
+                          - statefulsets
+                          - replicasets
+                          - daemonsets
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - apps.openshift.io
+                        resources:
+                          - deploymentconfigs
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - replicationcontrollers
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - argoproj.io
+                        resources:
+                          - rollouts
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - batch
+                        resources:
+                          - jobs
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - delete
+                          - deletecollection
+                      - apiGroups:
+                          - litmuschaos.io
+                        resources:
+                          - chaosengines
+                          - chaosexperiments
+                          - chaosresults
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - patch
+                          - update
+                          - delete
+                    image: docker.io/chaosnative/go-runner:0.13.1
+                    imagePullPolicy: Always
+                    args:
+                      - -c
+                      - ./experiments -name alb-az-down
+                    command:
+                      - /bin/bash
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "30"
+                      - name: RAMP_TIME
+                        value: ""
+                      - name: CHAOS_INTERVAL
+                        value: "30"
+                      - name: LOAD_BALANCER_ARN
+                        value: ""
+                      - name: ZONES
+                        value: ""
+                      - name: REGION
+                        value: ""
+                      - name: DEFAULT_HEALTH_CHECK
+                        value: "false"
+                      - name: AWS_SHARED_CREDENTIALS_FILE
+                        value: /tmp/cloud_config.yml
+                      - name: SEQUENCE
+                        value: parallel
+                    labels:
+                      name: alb-az-down
+                      app.kubernetes.io/part-of: litmus
+                      app.kubernetes.io/component: experiment-job
+                      app.kubernetes.io/version: ci
+                    secrets:
+                      - name: cloud-secret
+                        mountPath: /tmp/
+          - name: rds-instance-reboot-k45
+            path: /tmp/rds-instance-reboot-k45.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                description:
+                  message: |
+                    It injects rds-instance-reboot chaos on RDS cluster
+                kind: ChaosExperiment
+                metadata:
+                  name: rds-instance-reboot
+                  labels:
+                    name: rds-instance-reboot
+                    app.kubernetes.io/part-of: litmus
+                    app.kubernetes.io/component: chaosexperiment
+                    app.kubernetes.io/version: ci
+                spec:
+                  definition:
+                    scope: Namespaced
+                    permissions:
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods
+                        verbs:
+                          - create
+                          - delete
+                          - get
+                          - list
+                          - patch
+                          - update
+                          - deletecollection
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - events
+                        verbs:
+                          - create
+                          - get
+                          - list
+                          - patch
+                          - update
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - configmaps
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/log
+                        verbs:
+                          - get
+                          - list
+                          - watch
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - pods/exec
+                        verbs:
+                          - get
+                          - list
+                          - create
+                      - apiGroups:
+                          - apps
+                        resources:
+                          - deployments
+                          - statefulsets
+                          - replicasets
+                          - daemonsets
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - apps.openshift.io
+                        resources:
+                          - deploymentconfigs
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - ""
+                        resources:
+                          - replicationcontrollers
+                        verbs:
+                          - get
+                          - list
+                      - apiGroups:
+                          - argoproj.io
+                        resources:
+                          - rollouts
+                        verbs:
+                          - list
+                          - get
+                      - apiGroups:
+                          - batch
+                        resources:
+                          - jobs
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - delete
+                          - deletecollection
+                      - apiGroups:
+                          - litmuschaos.io
+                        resources:
+                          - chaosengines
+                          - chaosexperiments
+                          - chaosresults
+                        verbs:
+                          - create
+                          - list
+                          - get
+                          - patch
+                          - update
+                          - delete
+                    image: docker.io/chaosnative/go-runner:0.13.1
+                    imagePullPolicy: Always
+                    args:
+                      - -c
+                      - ./experiments -name rds-instance-reboot
+                    command:
+                      - /bin/bash
+                    env:
+                      - name: TOTAL_CHAOS_DURATION
+                        value: "30"
+                      - name: RAMP_TIME
+                        value: ""
+                      - name: CHAOS_INTERVAL
+                        value: "10"
+                      - name: CLUSTER_NAME
+                        value: ""
+                      - name: RDS_INSTANCE_IDENTIFIER
+                        value: ""
+                      - name: REGION
+                        value: ""
+                      - name: FAILOVER
+                        value: "false"
+                      - name: INSTANCE_AFFECTED_PERC
+                        value: "100"
+                      - name: AWS_SHARED_CREDENTIALS_FILE
+                        value: /tmp/cloud_config.yml
+                      - name: DEFAULT_HEALTH_CHECK
+                        value: "false"
+                      - name: SEQUENCE
+                        value: parallel
+                    labels:
+                      name: rds-instance-reboot
+                      app.kubernetes.io/part-of: litmus
+                      app.kubernetes.io/component: experiment-job
+                      app.kubernetes.io/version: ci
+                    secrets:
+                      - name: cloud-secret
+                        mountPath: /tmp/
+      outputs: {}
+      metadata: {}
+      container:
+        name: ""
+        image: docker.io/chaosnative/k8s:0.13.0
+        command:
+          - sh
+          - "-c"
+        args:
+          - kubectl apply -f /tmp/ -n {{workflow.parameters.adminModeNamespace}} && sleep 30
+        resources: {}
+    - name: pod-delete-o2z
+      inputs:
+        artifacts:
+          - name: pod-delete-o2z
+            path: /tmp/chaosengine-pod-delete-o2z.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                kind: ChaosEngine
+                metadata:
+                  namespace: "{{workflow.parameters.adminModeNamespace}}"
+                  generateName: pod-delete-o2z
+                  labels:
+                    instance_id: 2760c483-64b6-4b65-a70d-368b72e7549b
+                    workflow_name: test-resiliency
+                    workflow_run_id: "{{ workflow.uid }}"
+                spec:
+                  appinfo:
+                    appns: default
+                    applabel: app=weather-app
+                    appkind: deployment
+                  engineState: active
+                  chaosServiceAccount: litmus-admin
+                  experiments:
+                    - name: pod-delete
+                      spec:
+                        components:
+                          env:
+                            - name: TOTAL_CHAOS_DURATION
+                              value: "30"
+                            - name: CHAOS_INTERVAL
+                              value: "10"
+                            - name: FORCE
+                              value: "false"
+                            - name: PODS_AFFECTED_PERC
+                              value: ""
+                        probe:
+                          - name: probe-home
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-ping
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/ping
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-health
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/health
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-statistics
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/statistics
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+      outputs: {}
+      metadata:
+        labels:
+          weight: "10"
+      container:
+        name: ""
+        image: docker.io/chaosnative/litmus-checker:0.13.0
+        args:
+          - "-file=/tmp/chaosengine-pod-delete-o2z.yaml"
+          - "-saveName=/tmp/engine-name"
+        resources: {}
+    - name: cleanup-chaos-resources
+      inputs: {}
+      outputs: {}
+      metadata: {}
+      container:
+        name: ""
+        image: docker.io/chaosnative/k8s:0.13.0
+        command:
+          - sh
+          - "-c"
+        args:
+          - kubectl delete chaosengine -l workflow_run_id={{workflow.uid}} -n {{workflow.parameters.adminModeNamespace}}
+        resources: {}
+    - name: alb-az-down-76z
+      inputs:
+        artifacts:
+          - name: alb-az-down-76z
+            path: /tmp/chaosengine-alb-az-down-76z.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                kind: ChaosEngine
+                metadata:
+                  namespace: "{{workflow.parameters.adminModeNamespace}}"
+                  labels:
+                    workflow_run_id: "{{ workflow.uid }}"
+                    workflow_name: test-resiliency
+                  generateName: alb-az-down-76z
+                spec:
+                  engineState: active
+                  chaosServiceAccount: litmus-admin
+                  experiments:
+                    - name: alb-az-down
+                      spec:
+                        components:
+                          env:
+                            - name: TOTAL_CHAOS_DURATION
+                              value: "30"
+                            - name: RAMP_TIME
+                              value: ""
+                            - name: CHAOS_INTERVAL
+                              value: "30"
+                            - name: LOAD_BALANCER_ARN
+                              value: arn:aws:elasticloadbalancing:eu-west-1:589295909756:loadbalancer/app/k8s-default-weathera-f7cb5671fd/30e6a216a9e44832
+                            - name: ZONES
+                              value: eu-west-1a
+                            - name: REGION
+                              value: eu-west-1
+                            - name: DEFAULT_HEALTH_CHECK
+                              value: "false"
+                            - name: AWS_SHARED_CREDENTIALS_FILE
+                              value: /tmp/cloud_config.yml
+                            - name: SEQUENCE
+                              value: parallel
+                        probe:
+                          - name: probe-home
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-ping
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/ping
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-health
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/health
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-statistics
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/statistics
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+      metadata:
+        labels:
+          weight: "5"
+      container:
+        name: ""
+        image: docker.io/chaosnative/litmus-checker:0.13.0
+        args:
+          - "-file=/tmp/chaosengine-alb-az-down-76z.yaml"
+          - "-saveName=/tmp/engine-name"
+    - name: rds-instance-reboot-k45
+      inputs:
+        artifacts:
+          - name: rds-instance-reboot-k45
+            path: /tmp/chaosengine-rds-instance-reboot-k45.yaml
+            raw:
+              data: |
+                apiVersion: litmuschaos.io/v1alpha1
+                kind: ChaosEngine
+                metadata:
+                  namespace: "{{workflow.parameters.adminModeNamespace}}"
+                  labels:
+                    workflow_run_id: "{{ workflow.uid }}"
+                    workflow_name: test-resiliency
+                  generateName: rds-instance-reboot-k45
+                spec:
+                  engineState: active
+                  chaosServiceAccount: litmus-admin
+                  experiments:
+                    - name: rds-instance-reboot
+                      spec:
+                        components:
+                          statusCheckTimeouts:
+                            delay: 2
+                            timeout: 400
+                          env:
+                            - name: TOTAL_CHAOS_DURATION
+                              value: "30"
+                            - name: RAMP_TIME
+                              value: ""
+                            - name: CHAOS_INTERVAL
+                              value: "10"
+                            - name: CLUSTER_NAME
+                              value: ""
+                            - name: RDS_INSTANCE_IDENTIFIER
+                              value: esagirov-ce-master
+                            - name: REGION
+                              value: eu-west-1
+                            - name: FAILOVER
+                              value: "false"
+                            - name: INSTANCE_AFFECTED_PERC
+                              value: "100"
+                            - name: AWS_SHARED_CREDENTIALS_FILE
+                              value: /tmp/cloud_config.yml
+                            - name: DEFAULT_HEALTH_CHECK
+                              value: "false"
+                            - name: SEQUENCE
+                              value: parallel
+                        probe:
+                          - name: probe-home
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-ping
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/ping
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-health
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/health
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+                          - name: probe-statistics
+                            type: httpProbe
+                            mode: Continuous
+                            httpProbe/inputs:
+                              url: http://k8s-default-weathera-f7cb5671fd-231833900.eu-west-1.elb.amazonaws.com/statistics
+                              insecureSkipVerify: false
+                              method:
+                                get:
+                                  criteria: ==
+                                  responseCode: "200"
+                            runProperties:
+                              probeTimeout: 1000ms
+                              interval: 2s
+                              attempt: 3
+                              probePollingInterval: 2s
+                              initialDelay: 3s
+                              stopOnFailure: false
+      metadata:
+        labels:
+          weight: "8"
+      container:
+        name: ""
+        image: docker.io/chaosnative/litmus-checker:0.13.0
+        args:
+          - "-file=/tmp/chaosengine-rds-instance-reboot-k45.yaml"
+          - "-saveName=/tmp/engine-name"
+  entrypoint: custom-chaos
+  arguments:
+    parameters:
+      - name: adminModeNamespace
+        value: hce
+  serviceAccountName: argo-chaos
+  podGC:
+    strategy: OnWorkflowCompletion
+  securityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+status: {}
