@@ -8,6 +8,8 @@ Apply manifest for our test web application
 
 Demonstrate the web app its pages is working and can be accessed 
 
+
+# Harness setup
 Harness chaos: Create project, environment, download manifest for chaos infrastructure 
 
 Apply chaos infra into the cluster: kubectl apply -f test-chaos-plane-harness-chaos-enable.yml 
@@ -27,7 +29,7 @@ Create experiment, check and run
  
 
  
-
+# Experiment and fix
 Change replicas to 3 and rerun 
 
 Change antiaffinity and reapply the deployment 
@@ -47,3 +49,78 @@ Change the image name in deployment.yaml
 Apply 
 
 Rerun the resiliency test 
+
+
+# Create Openweather API account
+1. Go to https://home.openweathermap.org/users/sign_up and register
+2. Click on your username in the right top corner
+3. Chose "My API Keys"
+4. Create a key
+
+# Build a container and push to ecr
+Go to ./app directory
+
+```
+export ECR_REPO=<AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/aws-ce/app
+aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin $ECR_REPO
+
+docker build . -t $ECR_REPO:<version>
+docker push $ECR_REPO:<version>
+```
+
+# Detailed deployment steps
+## Infrastructure deployment
+0. Go To "teraform" directory
+1. Fill in examply.tfvars. Fill in versios.tf, backend section - specify your bucket or remove backend section.
+2. Run "terraform apply -var-file ./example.tfvars"
+3. Fix "ALB controller" permissions. Ref: https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/issues/200
+    ```Open AWS IAM console
+    Find role <cluster name>-aws-load-balancer-controller-sa-irsa
+    Edit permission policy for this role: 
+        Find "elasticloadbalancing:AddTags" action and remove following condition
+         
+        "Condition": {
+            "Null": {
+                "aws:ResourceTag/ingress.k8s.aws/cluster": "false"
+            }
+        },
+    ```
+4. Take "configure_kubectl" output and run the command to get k8s config
+## DB preparation
+5. Go To "app" directory
+6. Run `kubectl apply -f ./busybox.yaml`
+7. Get RDS credentials from AWS SecretsManager "aws secretsmanager get-secret-value --secret-id /aws_ce/rds_secret --region <your deployment region>"
+8. Connect to busybox pod using command "kubectl -n default exec -it busybox -- bash"
+9. Connect to rds using command "psql -h <host from step 7> -U <username form step 7> -d postgres"
+10. Run following commands:
+```
+CREATE DATABASE weather_db;
+
+\c weather_db
+
+CREATE TABLE weatherstatistics (
+	time TIMESTAMP PRIMARY KEY,
+	temp VARCHAR ( 50 ) NOT NULL,
+	humidity VARCHAR ( 50 ) NOT NULL
+);
+```
+11. Close psql and busybox sessions
+## Deploy app
+12. Obtain openweather api key. Please see [Create Openweather API account](#create-openweather-api-account)
+13. Build image and pus to ECR. Please see [Build a container and push to ecr](#build-a-container-and-push-to-ecr)
+13. Go To "app" directory
+14. Replace api key placeholder in deployment.yaml with value obtained in step 12
+15. Run "kubectl apply -f deployment.yaml"
+## Tests
+16. [Harness setup](#harness-setup)
+17. [Experiment and fix](#experiment-and-fix)
+
+
+
+# Cleanup
+1. Go To "app" directory
+2. Run "kubectl delete -f deployment.yaml"
+3. Go To "chaos-experiments" directory
+4. Run "kubectl delete -f ./"
+5. Go To "terraform" directory.
+6. Run "terraform destroy -var-file ./example.tfvars"
